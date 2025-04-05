@@ -12,7 +12,7 @@ file_id = "1-4oGsq7zvIvdr_w4qj5QEHmkO4hCR9Iv"
 model_path = "modelo_vehiculos.h5"
 clases = ['Bus', 'Car', 'Truck', 'motorcycle']
 
-# --- Descargar modelo si no existe ---
+# --- Descargar y cargar modelo ---
 @st.cache_resource
 def download_and_load_model():
     if not os.path.exists(model_path):
@@ -21,10 +21,11 @@ def download_and_load_model():
             gdown.download(url, model_path, quiet=False)
 
     if not os.path.exists(model_path):
-        raise FileNotFoundError("El modelo no se descargó correctamente. Verifica el ID o permisos en Drive.")
+        raise FileNotFoundError("No se encontró el archivo del modelo.")
 
-    model = tf.keras.models.load_model(model_path)
-    return model
+    return tf.keras.models.load_model(model_path)
+
+model = download_and_load_model()
 
 # --- Interfaz de usuario ---
 st.title("Clasificador de Vehículos")
