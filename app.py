@@ -10,7 +10,7 @@ import gdown
 # --- Configuración ---
 file_id = "1-4oGsq7zvIvdr_w4qj5QEHmkO4hCR9Iv"
 model_path = "modelo_vehiculos.h5"
-clases = ['auto', 'moto', 'pesado', 'otro']  # Ajusta según corresponda
+clases = ['Bus', 'Car', 'Truck', 'motorcycle']
 
 # --- Descargar modelo si no existe ---
 @st.cache_resource
@@ -19,11 +19,12 @@ def download_and_load_model():
         with st.spinner("Descargando modelo desde Google Drive..."):
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, model_path, quiet=False)
-    # Cargar modelo
+
+    if not os.path.exists(model_path):
+        raise FileNotFoundError("El modelo no se descargó correctamente. Verifica el ID o permisos en Drive.")
+
     model = tf.keras.models.load_model(model_path)
     return model
-
-model = download_and_load_model()
 
 # --- Interfaz de usuario ---
 st.title("Clasificador de Vehículos")
@@ -49,3 +50,5 @@ if uploaded_file is not None:
             st.success(f"Predicción: **{clases[pred_idx]}** con {confianza}% de confianza.")
     except Exception as e:
         st.error(f"Ocurrió un error procesando la imagen: {e}")
+
+
