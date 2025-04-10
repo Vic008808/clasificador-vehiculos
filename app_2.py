@@ -27,62 +27,48 @@ def download_and_load_model():
 
 model = download_and_load_model()
 
-# --- Interfaz de usuario ---
-# Nuevo código para la predicción de pesos 
+# --- Pesos promedio por clase en kilogramos ---
+pesos_clase = {
+    'Bus': 12000,
+    'Car': 1500,
+    'Truck': 25000,
+    'motorcycle': 250
+}
 
-# --- Pesos promedio por clase en kilogramos (ajustables) ---
-peso_bus = 12000         # Bus típico urbano
-peso_car = 1500          # Automóvil promedio
-peso_truck = 25000       # Camión de carga mediano a pesado
-peso_motorcycle = 250    # Motocicleta turismo
+st.title("Clasificador de vehículos y estimación de carga")
 
-# Ruta base del dataset
-pathDataset = "/kaggle/input/vehicle-type-recognition/Dataset"
+# --- Cargar imágenes desde el usuario ---
+uploaded_files = st.file_uploader("Sube imágenes de vehículos", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
-# Clases disponibles
-clases = ["Bus", "Car", "Truck", "motorcycle"]
+if uploaded_files:
+    conteo_por_clase = {clase: 0 for clase in clases}
+    total_peso_estimado = 0
 
-# Número de imágenes por clase a seleccionar
-n = 10
-
-# Lista para almacenar los arrays de imágenes y etiquetas
-imagenes_array = []
-etiquetas = []
-
-# Cargar imágenes
-for clase in clases:
-    ruta_clase = os.path.join(pathDataset, clase)
-    imagenes = os.listdir(ruta_clase)
-
-    seleccionadas = random.sample(imagenes, n)
-
-    for img_nombre in seleccionadas:
-        ruta_imagen = os.path.join(ruta_clase, img_nombre)
-
+    for uploaded_file in uploaded_files:
         try:
-            img = Image.open(ruta_imagen).convert("RGB")
+            img = Image.open(uploaded_file).convert("RGB")
             img_resized = img.resize((224, 224))
             img_array = image.img_to_array(img_resized)
             img_array = np.expand_dims(img_array, axis=0)
             img_array = preprocess_input(img_array)
 
-            imagenes_array.append(img_array)
-            etiquetas.append(clase)
+            pred = model.predict(img_array, verbose=0)
+            pred_idx = np.argmax(pred)
+            clase_predicha = clases[pred_idx]
+
+            conteo_por_clase[clase_predicha] += 1
+            total_peso_estimado += pesos_clase[clase_predicha]
+
+            st.image(img, caption=f"Predicción: {clase_predicha}", width=250)
         except Exception as e:
-            print(f"Error cargando {ruta_imagen}: {e}")
+            st.warning(f"Error procesando imagen: {uploaded_file.name}. Detalle: {e}")
 
-for img_array in imagenes_array:
-    pred = model.predict(np.expand_dims(img_array, axis=0), verbose=0)
-    pred_idx = np.argmax(pred)
-    clase_predicha = clases[pred_idx]
-    conteo_por_clase[clase_predicha] += 1
-    total_peso_estimado += pesos_clase[clase_predicha]
+    # --- Mostrar resultados ---
+    st.subheader("Conteo por clase predicha:")
+    for clase, conteo in conteo_por_clase.items():
+        st.write(f"{clase}: {conteo} vehículos")
 
-# --- Resultados ---
-print("Conteo por clase predicha:")
-for clase, conteo in conteo_por_clase.items():
-    print(f"{clase}: {conteo} vehículos")
-
-print(f"\nPeso total estimado en el puente por las imágenes analizadas: {total_peso_estimado:,} kg")
-
-
+    st.subheader("Peso total estimado:")
+    st.write(f"**{total_peso_estimado:,} kg**")
+else:
+    st.info("Por favor, sube una o más imágenes para iniciar la predicción.")
